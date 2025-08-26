@@ -6,11 +6,11 @@
   lint     (shell "clj-kondo --lint src test")
   outdated (shell "clojure -M:outdated")
   all      (do
-             (println "Linting...")
+             (println "🔍 Linting...")
              (run 'lint)
-             (println "Running tests...")
+             (println "🧪 Running tests...")
              (run 'test)
-             (println "Checking for outdated deps...")
+             (println "📦 Checking for outdated deps...")
              (run 'outdated)
-             (println "Starting dev REPL...")
+             (println "🚀 Starting dev REPL...")
              (run 'dev))}}
