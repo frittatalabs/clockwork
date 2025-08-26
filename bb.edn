@@ -1,0 +1,16 @@
+{:paths ["src" "test"]
+ :deps {org.clojure/test.check {:mvn/version "1.1.1"}}
+ :tasks
+ {dev      (shell "clojure -M:dev")
+  test     (shell "clojure -M:test")
+  lint     (shell "clj-kondo --lint src test")
+  outdated (shell "clojure -M:outdated")
+  all      (do
+             (println "Linting...")
+             (run 'lint)
+             (println "Running tests...")
+             (run 'test)
+             (println "Checking for outdated deps...")
+             (run 'outdated)
+             (println "Starting dev REPL...")
+             (run 'dev))}}

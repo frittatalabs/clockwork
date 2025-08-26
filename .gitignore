@@ -1,0 +1,43 @@
+# macOS
+.DS_Store
+
+# Clojure build artifacts
+/classes
+/target
+/lib
+/.cpcache
+
+# Leiningen
+/.lein-deps-sum
+/.lein-failures
+/.lein-repl-history
+/.nrepl-port
+
+# Clojure CLI (deps.edn)
+/pom.xml
+/.cpcache
+
+# clj-kondo (linting)
+.clj-kondo/
+.clj-kondo.cache/
+
+# cljfmt (formatting)
+.cljfmt.edn
+
+# cider (Emacs REPL integration)
+.cider-nrepl/
+.nrepl-port
+.repl-history
+
+# REPL & editor temp files
+*.swp
+*.swo
+*.bak
+
+# Emacs
+*~
+.#*
+project.el
+
+# Test output
+/test-output/
