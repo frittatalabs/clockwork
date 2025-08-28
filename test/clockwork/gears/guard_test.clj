@@ -53,10 +53,3 @@
                               y (* 3 target)]
                              ;; that was silly, but we made it through the gauntlet!
                              (- y (* 2 target)))))))))))
-
-;; escapement test in foundry
-;; other foundry tests? composing or anything?
-;; PREREQ - make a Clockwork have a stateful execution mode
-;; workshop READER
-;; workshop tests - menagerie & mimics
-;; other gears - custom flash and sugar

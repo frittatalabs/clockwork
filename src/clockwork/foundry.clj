@@ -84,12 +84,13 @@
   (create identity pass))
 
 (defn engage
-  "mainspring-generating functions can be chained here"
+  "mainspring-generating functions can be chained here, and brought to life"
   [& mainsprings]
   (reduce pass core (reverse mainsprings)))
 
 (defmacro let-with
-  "A 'lower-level' helper for gears to use in building their own let-like form"
+  "A helper for gears to use in building their own let-like form
+  The idea is is wraps your constructors args, calls engage, and puts it in a `with`"
   [mainspring form]
   (let [[parameters let-like]
         (split-with (complement vector?) form)]
