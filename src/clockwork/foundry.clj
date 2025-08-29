@@ -1,68 +1,68 @@
 (ns clockwork.foundry)
 
-(defprotocol Mainspring
-  "The logic that drives a clockwork gear"
-  (embed [_ value] "Embed a plain value")
-  (drive [_ gear ->mesh] "Mesh a gear through the next step"))
-
-(def decomplect drive)
-
-(defprotocol Cog
-  (xform* [this f] "Transform with a regular fn"))
-
-(defn xform
-  "Transform with a series of functions, composed left-to-right"
-  [clock & chain]
-  (reduce xform* clock chain))
-
 (defprotocol Gear
-  "The implementation of mesh* should return a Gear, to enable continuing composition"
+  "A protocol to enable continuing composition"
   (mesh* [this ->gear] "Engage a gear through a step"))
 
-(defn chain
-  "A left-to-right composition of step fns"
-  [gears]
-  (fn [clock]
-    (reduce mesh* clock gears)))
+(defprotocol Mainspring
+  "The logic that drives a clockwork gear - by convention you can use a multi-arity fn instead
+  of extending this protocol: it was formalized in a protocol to allow IFn implementations to
+  extend a different behavior to driving gears. A call to the 1-arity maps to `embed` and a call to
+  the 2-arity maps to drive"
+  (embed [_ value] "Embed a plain value")
+  (drive [_ gear ->mesh] "Mesh a gear through the next step (i.e. decomplect things)"))
 
-(defn compose
-  "A right-to-left composition of step fns"
+(defn meshed
+  "Engage a gear with one or more step functions; composed left-to-right"
+  ;; where a ->next clockwork function produces some Gear for infinite continuing composition
+  [gear chain]
+  (reduce mesh* gear chain))
+
+(defn mesh
+  [gear & chain]
+  (meshed gear chain))
+
+#_
+(defn chain
+  "A left-to-right composition of step fns: `compose` with reversed order; similar to `->` in ordering, but not a macro. First class and composeable"
+  [gears]
+  #(apply mesh % gears))
+
+#_
+(defn compose - composed
+  "A right-to-left composition of step fns: the heavy-duty version of `comp` - (and not a macro, so first class, and think \"composeable\")"
   [gears]
   (chain (reverse gears)))
 
-(defn mesh
-  "Engage a gear with one or more step functions; composed left-to-right"
-  ;; where a clockwork function produces some Gear for infinite continuing composition
-  [clock & ->gears]
-  ((chain ->gears) clock))
-
 (defn create
-  "Builds a mainspring: for embedding a value into a thing, and deconstructing it.
-  Returns a 2-arity function that can be used to drive gears or to create a Mainspring implementation"
-  [construct decomplect]
+  "Builds a 2-arity function that can be used to drive gears or to create a Mainspring implementation"
+  [->embed ->drive]
   (fn
-    ([it] (construct it))
-    ([gear ->mesh] (decomplect gear ->mesh))))
+    ([it] (->embed it))
+    ([->to-mesh ->next] (->drive ->to-mesh ->next))))
 
 (defn ->fn
-  "Makes a mainspring act like a 2-arity fn; if it's not a mainspring, then whatever it is just gets returned"
+  "Makes a mainspring act like a 2-arity fn; if it's not a mainspring, then whatever it is just gets returned.
+  This sugar exists to allow a gear implementation to just call its driver rather than the protocol methods"
   [mainspring]
   (if (satisfies? Mainspring mainspring)
     (create (partial embed mainspring) (partial drive mainspring))
     mainspring))
 
+#_
 (defn ->mainspring
-  "Converts a 2-arity clockwork handler function to a mainspring
+  "Constructs a Mainspring from a couple of functions, as an alternative to `create`.
   Probably only really useful if you have an IFn and want it to decomplect (mesh / drive) differently
   than it would do by direct invocation"
-  ([driver] (->mainspring driver driver))
   ([construct decomplect]
    (reify Mainspring
      (embed [_ any] (construct any))
      (drive [_ gear ->mesh]
        (decomplect gear ->mesh)))))
 
-(defn pass [x f] (f x))
+(defn pass [x f]
+  (println f x)
+  (f x))
 
 (defmacro with
   "Gear‑agnostic general comprehension writer. What in the world?"
@@ -80,10 +80,10 @@
           (reverse steps)))))
 
 (def core
-  "Just a basic gear to kick things off with - or is it end them with?"
+  "Just a basic mainspring to kick things off with - or is it end them with?"
   (create identity pass))
 
-(defn engage
+(defn engage ;; congruent with (chain pass core mainsprings), if we were to parameterize `chain` - aka pass = mesh*
   "mainspring-generating functions can be chained here, and brought to life"
   [& mainsprings]
   (reduce pass core (reverse mainsprings)))

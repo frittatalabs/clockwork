@@ -1,5 +1,20 @@
 (ns clockwork.core
-  (:use [clockwork.gears.guard :only [let?]]))
+  (:require [clockwork.foundry :as foundry]
+            [clockwork.gears.guard :as guard]))
+
+(defmacro ^:private export
+  ([re-export] (list `export re-export nil))
+  ([internal external]
+   (let [exporting (or external (symbol (name internal)))]
+     `(do
+        (require '~(symbol (namespace internal)))
+        (intern *ns* (with-meta '~exporting (meta #'~internal))
+                #'~internal)))))
+
+(export foundry/mesh)
+
+(export guard/let?)
+
 
 #_(defn list-gear
     ([v] (g/simple v))
@@ -10,16 +25,12 @@
                          (conj acc res))))
                    [] v)))
 
-;; Here will be general, user-facing utilities. The refer above will be in the ns form
-;; Maybe hofs that use mainsprings to do other things: compose, most probably.
+;; workshop tests - menagerie & mimics: for-mimic (and let-mimic)
 
+;; other gears - sugar and flash: ring+, what coperina says
 ;; stream (zip)
-;; for-mimic (and let-mimic)
 ;; input, output, middleware
 ;; sprocket
-;; ring-plus, other sugar bombs
 
 ;; tease macro-trace and ns-hydration and tape-optimizer
 ;; possibly implement the generic vm
-
-;; pretty-print something, or do a swappable clockwork and show us "mock" something with no sweat? the sky's the limit.
