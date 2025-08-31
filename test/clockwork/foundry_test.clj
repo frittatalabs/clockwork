@@ -6,5 +6,3 @@
   (deftest escapement-test
     (is (= (list "6" "66")
            ((#'foundry/escapement #(list (% 3) (% 33)) #(#'foundry/escapement (* 2 %))) str)))))
-
-;; TODO: test chain and compose
