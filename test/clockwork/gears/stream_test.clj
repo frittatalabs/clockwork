@@ -4,12 +4,16 @@
             [clockwork.foundry :as foundry]))
 
 (testing "Stream comprehensions - like for, but for streams: (you zip them)"
-  (let [streaming (stream/create foundry/core)]
-    (deftest test-embed
-      (is (= 5 (first (streaming 5)))))
-    (deftest test-drive
-      (is (= [1 2 3] (take 7 (foundry/with streaming
-                                 [x (range 5 -10 -2)
-                                  y (range)
-                                  z (list -2 2 4 9 0)]
-                               {:x x :y y :z z})))))))
+  (deftest test-embed
+    (is (= 5 (first (stream/zipping 5)))))
+  (deftest test-drive
+    (is (= [{:x 5 :y 0 :z -2}
+            {:x 3 :y 1 :z 2}
+            {:x 1 :y 2 :z 4}
+            {:x -1 :y 3 :z 9}
+            {:x -3 :y 4 :z 0}]
+           (take 5 (foundry/with stream/zipping
+                       [x (range 5 -10 -2)
+                        y (range)
+                        z (list -2 2 4 9 0)]
+                     {:x x :y y :z z}))))))

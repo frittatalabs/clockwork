@@ -1,14 +1,14 @@
 (ns clockwork.gears-test
   (:require [clojure.test :refer [deftest is]]
             [clockwork.foundry :as foundry]
-            [clockwork.gears :as gears]))
+            [clockwork.gears :as gears :refer [->clockwork]]))
 
 ;; --- scaffolding ---
 
 (def driver
   (foundry/create
     #(vector :embedded %)
-    foundry/pass))
+    #(%1 %2)))
 
 (def step-inc (comp gears/simple inc))
 (defn times-two [x] (* 2 x))
@@ -17,34 +17,16 @@
 (deftest simple-invocation
   (is (= [:embedded 42] ((gears/simple 42) driver))))
 
-(deftest mesh-multiple-args-vs-apply
-  ;; mesh consumes Gear-returning steps
-  (let [cw1 (apply foundry/mesh (gears/simple 1) [step-inc step-times2 step-inc])
-        cw2 (foundry/mesh (gears/simple 1) step-inc step-times2 step-inc)]
-    (is (= [:embedded 5] (cw1 driver)))
-    (is (= [:embedded 5] (cw2 driver)))))
-
-#_
-(deftest xform-multiple-args-vs-apply
-  ;; xform consumes pure functions
-  (let [cw1 (apply foundry/xform (gears/simple 1) [inc #(* 3 %)])
-        cw2 (foundry/xform (gears/simple 1) inc #(* 3 %))]
-    (is (= [:embedded 6] (cw1 driver)))
-    (is (= [:embedded 6] (cw2 driver)))))
-
 (deftest complect-with-vector-queue
   ;; complect takes a prebuilt queue (collection) of Gear-returning steps
-  (let [cw (gears/->clockwork 1 [step-inc step-times2])]
+  (let [cw (->clockwork 1 [step-inc step-times2])]
     (is (= [:embedded 4] (cw driver)))))
 
-#_
-(deftest xform-on-simple-single-fn
-  ;; Protocol methods (*) only accept a single fn
-  (is (= [:embedded 4] ((foundry/xform* (gears/simple 3) inc) driver))))
-
-(deftest mesh-on-simple-single-fn
-  ;; mesh* must receive a Gear-returning step
-  (is (= [:embedded 4] ((foundry/mesh* (gears/simple 3) step-inc) driver))))
+(deftest mesh-multiple-steps-equals-vector-construction
+  (let [cw1 (->clockwork 1 [step-inc step-times2 step-inc])
+        cw2 (gears/mesh 1 step-inc step-times2 step-inc)
+        cw3 (gears/mesh (gears/simple 1) step-inc step-times2 step-inc)]
+    (is (= [:embedded 5] (cw1 driver) (cw2 driver) (cw3 driver)))))
 
 #_
 (deftest xform-then-mesh
@@ -61,13 +43,7 @@
   (let [cw (foundry/xform (gears/simple 10))]
     (is (= [:embedded 10] (cw driver)))))
 
-(deftest ->clockwork-empty-vector-equals-engage
-  (is (= ((gears/->clockwork 7 []) driver)
-         ((gears/mesh 7) driver))))
+(deftest mesh-with-no-functions-equals-empty-vector
+  (is (= ((gears/->clockwork 43 []) driver)
+         ((gears/mesh 43) driver))))
 
-;; --- Engage-specific tests ---
-
-(deftest engage-equivalence
-  (doseq [v [0 1 -3 42]]
-    (is (= ((gears/mesh v) driver)
-           ((gears/->clockwork v []) driver)))))

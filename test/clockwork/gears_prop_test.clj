@@ -47,8 +47,8 @@
   50
   (prop/for-all [init gen/int
                  fs gen-gear-fn-seq]
-    (let [cw1 (apply foundry/mesh (gears/simple init) fs)
-          cw2 (reduce (fn [gear f] (foundry/mesh* gear f))
+    (let [cw1 (apply gears/mesh (gears/simple init) fs)
+          cw2 (reduce (fn [gear f] (gears/mesh gear f))
                       (gears/simple init)
                       fs)]
       (= (cw1 test/driver) (cw2 test/driver)))))

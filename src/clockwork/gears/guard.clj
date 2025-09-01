@@ -2,7 +2,7 @@
   "Protects the gear driver from guarded values getting passed in"
   (:require [clockwork.foundry :as foundry]))
 
-(defn create
+(defn- guarded-link
   "Create a nil-safe (or otherwise guarded) version of your gear by passing your mainspring to the resulting fn.
   This generator can accept zero, one or two options:
   a guard? predicate: if no options, defaults to `nil?`
@@ -13,22 +13,27 @@
     (let [guard? (or guard-or-nil? nil?)]
       (foundry/create
        mainspring
-       (fn [gear ->mesh]
+       (fn [->mesh gear]
          (if (guard? gear)
            (mainspring escape)
-           (mainspring gear ->mesh)))))))
+           (mainspring ->mesh gear)))))))
+
+(defn create
+  "Drive a flow with custom guards around the flow values, exiting early with an escape value if triggered;
+  uses `nil` as the default escape value if not provided"
+  ([guard-or-nil?] (create guard-or-nil? nil))
+  ([guard? escape]
+   (foundry/create
+    identity
+    (fn [->next gear]
+      (if (guard? gear)
+        escape
+        (->next gear))))))
+
+(def nilsafe (create nil?))
 
 (defmacro let?
   "A drop-in replacement for let, which short-circuits to safely return `nil` when it sees one, no exceptions"
   [bindings & body]
-  `(foundry/with (foundry/engage (create)) ~bindings ~@body))
+  `(foundry/with nilsafe ~bindings ~@body))
 
-(defmacro let-with
-  "This lets you build a one-off customized guarded let
-  the guard? gate and escape are optional, the form will be parsed till we see a vector form (the bindings)
-
-  You can specify a guard (defaults to `nil?`, as in `create`) if not present,
-  with an optional \"escape\" value (`nil`, also as in `create`) following the guard.
-  In other words, `let?` is like a sugar to this with no args specified"
-  [& guarded-let]
-  `(foundry/let-with create ~guarded-let))

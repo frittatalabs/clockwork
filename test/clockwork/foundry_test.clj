@@ -5,4 +5,5 @@
 (testing "Test `escapement`, which no one should use anyway, but let's just make sure"
   (deftest escapement-test
     (is (= (list "6" "66")
-           ((#'foundry/escapement #(list (% 3) (% 33)) #(#'foundry/escapement (* 2 %))) str)))))
+           ((#'foundry/escapement #(fn [k] (k (* 2 %))) #(list (% 3) (% 33))) str)))))
+
