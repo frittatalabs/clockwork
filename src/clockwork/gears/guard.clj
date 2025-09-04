@@ -9,14 +9,14 @@
   if a second arg follows the guard, it will be used as the 'escape' value
   the default escape is `nil` (this is what returns when the guard? predicate is triggered)"
   [& [guard-or-nil? escape]]
-  (fn [mainspring]
+  (fn [gear]
     (let [guard? (or guard-or-nil? nil?)]
       (foundry/create
-       mainspring
-       (fn [->mesh gear]
-         (if (guard? gear)
-           (mainspring escape)
-           (mainspring ->mesh gear)))))))
+       gear
+       (fn [->mesh guarded]
+         (if (guard? guarded)
+           (gear escape)
+           (gear ->mesh guarded)))))))
 
 (defn create
   "Drive a flow with custom guards around the flow values, exiting early with an escape value if triggered;

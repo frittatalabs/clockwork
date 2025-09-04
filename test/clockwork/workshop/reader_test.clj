@@ -16,7 +16,9 @@
       (testing "Real composition begins: let's compose *reader methods*"
         (deftest a-word!
           (is (= "Word!"
-                 (reader/read " ,  Word! " reader/chew-whitespace
-                                           reader/mark
-                                           reader/end-of-word
-                                           reader/emit))))))))
+                 ;; we print to stdout because it's a demo/tutorial. It's OK to be a little noisy when learning
+                 (binding [*out* (java.io.StringWriter.)]
+                   (reader/read " ,  Word! " reader/chew-whitespace
+                                             reader/mark
+                                             reader/end-of-word
+                                             reader/emit)))))))))

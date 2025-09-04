@@ -8,7 +8,8 @@
 (def driver
   (foundry/create
     #(vector :embedded %)
-    #(%1 %2)))
+    (fn [f x]
+      (f (if (vector? x) (second x) x)))))
 
 (def step-inc (comp gears/simple inc))
 (defn times-two [x] (* 2 x))

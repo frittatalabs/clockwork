@@ -1,6 +1,7 @@
 (ns clockwork.workshop.reader
   (:refer-clojure :exclude [read])
-  (:require [clockwork.gears :as gears :refer [->clockwork mesh simple]]))
+  (:require [clockwork.gears :as gears :refer [->clockwork mesh simple]]
+            [clockwork.foundry :as foundry]))
 
 ;; We will design the logic first: no objects, no records, not even any protocols. Pure logic
 
@@ -14,8 +15,8 @@
 ;; If you are not in demo mode, like I am here, feel free to declare a protocol up front:
 ;;  what I'm doing isn't necessarily optimal for real use - this is instructional.
 
-;; We will introduce a real object and protocols later. For this instructional (I hope) example
-;; let's do things in reverse order, to demonstrate how, and that we can be as flexible as we need
+;; We will introduce a real object and protocols later. For this example, we will
+;; do things in reverse order, to demonstrate how, and that we can be as flexible as we need
 ;; - no protocols required: any object can work
 
 ;; in this case, our "object" is just a loose set of vectors and keyword tags
@@ -74,16 +75,47 @@
 ;; we can drive a Clockwork by simply destructuring it - but first we will need an actual
 ;; state object, as the above is pure declarative logic. Think of it as "reader forms" or commands
 
-;; we will create a protocol now, after-the-fact :)
-;; you might instead have a protocol designed up front, and might not use vectors with keywords
-;; what if... you just used the protocol methods themselves instead of keywords, and just - you know what?
-;; I don't want to be confusing. Let's keep it gentle and just go on
-
 (defprotocol State ;; "Inspired by" the tags in our declarative vectors above
   (current* [_])
   (emit* [_])
   (mark* [_])
   (seek* [_ targets stop-or-chew?]))
+
+;; this function encapsulates the *control* aspect. We have logic in the functions above, pure declarative.
+;; the stateful object will be defined last - pure side effects. Side effects start feeling more simple when you keep
+;; logic and control clean and out of the picture.
+(defn decomplect
+  "This drives our string reader, keeps our state and uses it via its protocol.
+  Brings the reader to life, powers it. We can safely deconstruct Clockworks as they are a fixed
+  structure that never changes:
+  {:keys [flow payload]}, the type of flow can by :simple or :complected
+   and the complected payload can be destructured to
+  {:keys [command queue]}"
+  [{:keys [flow payload] :as result} state]
+  (case flow
+    :simple payload
+    :complected
+    ;; here we destructure our custom reader "method"
+    (let [{[op seek-targets find-or-chew?] :command
+           ;; destructuring, we are in "low-level" mode so we must be sure not to lose our enqueued steps. If you invoke the Clockwork, it handles this for you
+           ->next :queue} payload
+      ;; Above, we wrote ops that aren't a fn, and we want to just mesh those as-is. It will be nice, but it creates
+      ;; a tiny bit of extra work for us here. It'll be worth it, though!
+          resubmit #(if-let [[->step & queue] (seq ->next)]
+                      (gears/engage
+                       (if (fn? ->step) (->step %) ->step)
+                       queue)
+                      %)]
+      (case op
+        ;; simple mapping from opcode to our value+effects
+        :seek (let [seeking (seek* state seek-targets find-or-chew?)]
+                (recur (resubmit (current* seeking)) seeking))
+        :emit (recur (resubmit (emit* state)) state)
+        :mark (recur (resubmit nil) (mark* state))
+        :current (recur (resubmit (current* state)) state)
+        {:unknown-op-code payload}))
+    (do (println "Final reader state: " state)
+        result)))
 
 ;; The last thing we will do is make our state. Why last? Keeps things safe! State is messy and gets everywhere
 (defrecord StringState [backing mark index]
@@ -106,48 +138,6 @@
       (.region match index (count backing))
       (when (.find match)
         (assoc this :index (.start match))))))
-      
-;; let's try running it through its paces - fun. I have a feeling this will be nice to have:
-(defmacro ^:private resubmit [decomplected queue-expr]
-  `(if-let [[->next# & queue#] (seq ~queue-expr)] ;; todo: really need the seq?
-     (->clockwork (if (fn? ->next#)
-                    (->next# ~decomplected)
-                    ->next#)
-                  queue#)
-     (simple ~decomplected)))
-
-;; this function encapsulates the *control* aspect. We have logic in the functions above, pure declarative.
-;; we have the stateful object - pure side effects. Side effects start feeling more simple when you keep
-;; logic and control clean and out of the picture.
-(defn decomplect
-  "This drives our string reader, keeps our state and uses it via its protocol.
-  Brings the reader to life, powers it. We can safely deconstruct Clockworks as they are a fixed
-  structure that never changes:
-  {:keys [flow payload]}, where the flow is
-  {:keys [simple complected]} and complected is
-  {:keys [gear chain]}
-  Later on, they will be invokable as a clojure.lang.IFn, follow a protocol you can use, and so on. For now, we destructure :)"
-  [{:keys [flow payload]} state]
-  ;; In the future, we will be able to run a clockwork with fancy Mainspring functions and an invoke implementation via IFn. For now, I have to put that on hold:
-  ;; it's taking too much attention from more important (but less fun) things :( - For performance reasons(!), we go with explicit destructure + a hot loop :)
-  (case flow
-    :simple payload
-    :complected
-    ;; here we destructure our custom reader method, since clockwork doesn't know how
-    (let [{[op seek-targets find-or-chew?] :gear
-           ;; destructuring, we are in "low-level" mode so we must be sure not to lose our enqueued steps. If you invoke the Clockwork, it handles this for you
-           ->next :chain} payload]
-      ;; Above, we wrote ops that aren't a fn, and we want to just mesh those as-is. It will be nice, just creates
-      ;; a tiny bit of extra work for us here. It'll be worth it, though - and less work than invoking, which wraps the queue management in a small closure
-      (case op
-        ;; simple mapping from opcode to our value+effects
-        :seek (let [seeking (seek* state seek-targets find-or-chew?)]
-                (recur (resubmit (current* seeking) ->next) seeking))
-        :emit (recur (resubmit (emit* state) ->next) state)
-        :mark (recur (resubmit nil ->next) (mark* state))
-        :current (recur (resubmit (current* state) ->next) state)
-        {:unknown-op-code payload}))
-    {:unknown-control {:flow flow :payload payload :state state}}))
 
 (defn read
   "Run reader commands over a string. Commands can be step functions that take input from
