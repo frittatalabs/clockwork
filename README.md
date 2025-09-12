@@ -20,11 +20,11 @@ The answer worked so well, it became its own machine.
 
 ---
 
-## Why Clockwork?
+## About Clockwork
 - **Practical today** — drop it into real projects without ceremony
-- **Nail your Logic** — Trace behavior and flow in a dry run to verify correctness
-- **Elegant & fun** — APIs that feel like Clojure, but with extra polish
-- **Extreme composition** — swap any gear for another to change behavior
+- **Nail your Logic** — develop behavior and flow iteratively, with super easy mocking
+- **Elegant & fun** — APIs that feel like Clojure, with extra polish
+- **Extreme composition** — swap gears to change behavior
 - **Dry‑run mode** — trace and inspect your flow without running side effects
 - **Protocol‑free** — “gear” is just a metaphor; you can plug in anything
 
@@ -32,14 +32,12 @@ The answer worked so well, it became its own machine.
 
 ## The Big Idea
 
-At its heart, Clockwork is powered by a small set of **reduce‑like drivers**.  
-A *gear* is just a unit of logic with clear inputs and outputs. You can:
-
-1. **Use curated gears** from the public API — drop‑in forms and macros that feel like `let`, `for`, or `fn` but with extra abilities
-2. **Compose gears** to make your own flavors
-3. **Write your own driver** for fully custom behavior
-
-Think of it like LEGO® for control flow: start with ready‑made bricks, then start carving your own
+At its heart, Clockwork is powered by a desire to be immediately useful. The goals are:
+* Provide a "polished, curated" API (public functions and macros) in `clockwork.core` and aim for familiar-feeling forms that work like `let`, `for`, or `fn` but with extra abilities. Usable out-of-the-box
+* Intermediate users can customize behavior by parameterizing the underlying forms, and building bespoke functions and macros on top of the core layers. Built to suit your own needs
+* Advanced users can **compose gears** to make combinations that blend their ablilites. Think of it like LEGO meets Voltron.
+* Maestro level: **Write your own driver** for fully custom behavior
+At its heart, Clockwork is powered by a small set of reduce‑like drivers: a "gear" is just a unit of logic with clear inputs and outputs.
 
 ---
 
@@ -61,7 +59,7 @@ Stop nils before they spread. Drop it into real code today — no special protoc
   (+ x y))
 ;; => nil
 ```
-Works like `let`, but with built‑in nil‑guarding. You can start using it in minutes.
+Works like `let`, but with built‑in nil‑guarding. You can start using it instantly
 
 ---
 
@@ -74,7 +72,7 @@ Like `for`, but walks columns in lockstep.
    [n     (iterate inc 1)
     badge ["🔥" "✨" "🎯" "🚀" "💎"]
     label    [:fire :sparkle :bullseye :rocket :diamond]]
-   (->> label name clojure.string/capitalize (str "Column " n ": " badge " "))))
+  (str "Column " n ": " badge " " (->> label name clojure.string/capitalize))))
 ;; => ("Column 1: 🔥 Fire"
 ;;     "Column 2: ✨ Sparkle"
 ;;     "Column 3: 🎯 Bullseye"
@@ -89,12 +87,12 @@ Just a workshop toy, but you can trace execution by attaching notes to values as
 
 ```clojure
 (log/let-notes
-  [x (log/with-note 3 "Assigning 3 to x")
+  [x (log/with-note 3 "Assigning 3 to x.")
    y (- 99 x)
    z (let [xy (* x y)]
-       (log/with-note xy (str "x*y = " xy)))]
-  (+ x y z))
-;; Prints notes, returns 387
+       (log/with-note xy (str "And x*y = " xy)))]
+  (+ x y z)) ;; Prints "Notes collected: [Assigning 3 to x. And x*y = 288]"
+;; => 387
 ```
 
 Your flow becomes self‑documenting — perfect for debugging complex pipelines.
@@ -106,18 +104,19 @@ Also a workshop toy, but demonstrates inline mutable state without losing functi
 
 ```clojure
 (mem/let-cell
- "Initial State"
- [initial (mem/put {:x {:y {:z "deep value"}}})
+ "Initial State"                                ;; pass in anything
+ [initial (mem/put {:x {:y {:z "deep value"}}}) ;; put returns previous state
   z       (mem/get :x :y :z)
+  desc    (str "z is a " z)
   _       (mem/put (str initial " ==> Done")
- z) ;; prints "Final state:  Initial State ==> Done"
-;; => "deep value"
+ desc) ;; prints "Final state:  Initial State ==> Done"
+;; => "z is a deep value"
 ```
 
 ---
 
 ### 5. Ridiculously composable expressive power
-For example, in the workshop, you can build your own parsing pipeline.
+For example, in the workshop, you can build your own parsing pipeline
 
 ```clojure
 (reader/read " ,  Word! "
@@ -127,12 +126,10 @@ For example, in the workshop, you can build your own parsing pipeline.
              reader/emit)
 ;; => "Word!"
 ```
-## 6. **Developer Delight**  
+### **Developer Delight**
 APIs designed to feel *fun* — fluent, readable, and metaphor‑rich.
 
----
-
-## 7. **Future‑Proof Extensibility**  
+### **Future‑Proof Extensibility**
 Minimal, orthogonal primitives make it easy to add new gears without breaking old ones.
 
 ---
@@ -152,4 +149,4 @@ It’s for people who care about **clarity**, **composability**, and **delight**
 ---
 
 **MIT License**  
-Crafted in Seattle & Milano 🇺🇸🇮🇹 (well, Bonney Lake & Cremona - close enough)
+Crafted in Seattle & Milano 🇺🇸🇮🇹
